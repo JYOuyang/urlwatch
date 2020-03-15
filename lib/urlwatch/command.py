@@ -313,7 +313,7 @@ class UrlwatchCommand:
             output += ("%s|%s\n" % (state[0], state[1]))
 
         if not running_after_jobs:
-        print(output)
+            print(output)
         
         config = self.urlwatcher.config_storage.config['report'].get('timestamp_webhook', None)
         if not config:
