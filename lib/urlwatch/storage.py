@@ -111,6 +111,10 @@ DEFAULT_CONFIG = {
             'enabled': False,
             'webhook_url': '',
         },
+        'timestamp_webhook': {
+            'enabled': False,
+            'webhook_url': '',
+        },
         'mailgun': {
             'enabled': False,
             'region': 'us',

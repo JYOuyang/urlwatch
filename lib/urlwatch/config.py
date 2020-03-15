@@ -104,6 +104,7 @@ class CommandConfig(BaseConfig):
         group = parser.add_argument_group('miscellaneous')
         group.add_argument('--features', action='store_true', help='list supported jobs/filters/reporters')
         group.add_argument('--gc-cache', action='store_true', help='remove old cache entries')
+        group.add_argument('--report-timestamps', action='store_true', help='report job timestamps')
 
         args = parser.parse_args()
 

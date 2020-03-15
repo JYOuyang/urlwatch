@@ -34,6 +34,7 @@ import os
 import shutil
 import sys
 import requests
+import email.utils
 
 from .filters import FilterBase
 from .handler import JobState
@@ -182,6 +183,8 @@ class UrlwatchCommand:
             sys.exit(self.test_filter())
         if self.urlwatch_config.list:
             sys.exit(self.list_urls())
+        if self.urlwatch_config.report_timestamps:
+            sys.exit(self.report_timestamps())
         if self.urlwatch_config.add is not None or self.urlwatch_config.delete is not None:
             sys.exit(self.modify_urls())
 
@@ -291,7 +294,50 @@ class UrlwatchCommand:
                 # TODO: Actually verify that the login to the server works
 
             sys.exit(0)
+    
+    # for COVID19tracker, produce a sorted report of each entry in the storage database along with its 
+    # last-updated timestamp and push it to a webhook. running_after_jobs is false when invoked with 
+    # --report-timestamps, and true if invoked automatically after regular jobs are run 
+    def report_timestamps(self, running_after_jobs = False):
+        states = {}
+        for idx, job in enumerate(self.urlwatcher.jobs):
+            pretty_name = job.pretty_name()
+            guid = job.get_guid()
+            timestamp = self.urlwatcher.cache_storage.load(None, guid)[1]
+            states[pretty_name] = timestamp
 
+        states = sorted(states.items(), key=lambda x: x[1], reverse=True)
+        output = ""
+        for state in states:
+            timestamp_formatted = email.utils.formatdate(state[1], localtime=1)
+            output += ("%s|%s\n" % (state[0], state[1]))
+
+        if not running_after_jobs:
+        print(output)
+        
+        config = self.urlwatcher.config_storage.config['report'].get('timestamp_webhook', None)
+        if not config:
+            print('You need to configure timestamp_webhook in your config first')
+            sys.exit(1)
+        if not config['enabled']:
+            print('Timestamp reporting not enabled')
+
+        webhook_url = config.get('webhook_url', None)
+        post_data = {'value1': output}
+        result = requests.post(webhook_url, json=post_data)
+        
+        try:
+            if result.status_code == requests.codes.ok:
+                logger.info("Webhook response: ok")
+            else:
+                logger.error("Webhook error: {0}".format(result.text))
+        except ValueError:
+            logger.error(
+                "Failed to parse webook response. HTTP status code: {0}, content: {1}".format(result.status_code,
+                                                                                             result.content))
+        if not running_after_jobs:
+            sys.exit(0)
+    
     def run(self):
         self.check_edit_config()
         self.check_smtp_login()
@@ -299,4 +345,10 @@ class UrlwatchCommand:
         self.check_test_slack()
         self.handle_actions()
         self.urlwatcher.run_jobs()
+        
+        # if timestamp reporting is enabled, 
+        config = self.urlwatcher.config_storage.config['report'].get('timestamp_webhook', None)
+        if config['enabled']:
+          self.report_timestamps(running_after_jobs = True);
+        
         self.urlwatcher.close()
