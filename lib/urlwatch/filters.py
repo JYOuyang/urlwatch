@@ -487,7 +487,11 @@ class LxmlParser:
         return [el for el in map(self._reevaluate, selected_elems) if el is not None]
 
     def get_filtered_data(self):
-        return '\n'.join(self._to_string(element) for element in self._get_filtered_elements())
+        filtered_data = '\n'.join(self._to_string(element) for element in self._get_filtered_elements())
+        # TODO: get parent self.job object and pass here
+        # if not filtered_data.strip():
+        #     raise ValueError('%s did not match any markup for job: %r' % (self.filter_kind, self.job))
+        return filtered_data
 
 
 class CssFilter(FilterBase):
@@ -498,7 +502,11 @@ class CssFilter(FilterBase):
     def filter(self, data, subfilter=None):
         lxml_parser = LxmlParser('css', subfilter, 'selector')
         lxml_parser.feed(data)
-        return lxml_parser.get_filtered_data()
+        filtered_data = lxml_parser.get_filtered_data()
+        # TODO: move this raise higher in class
+        if not filtered_data.strip():
+            raise ValueError('CssFilter did not match any markup for job: {}'.format(self.job))
+        return filtered_data
 
 
 class XPathFilter(FilterBase):
@@ -509,7 +517,11 @@ class XPathFilter(FilterBase):
     def filter(self, data, subfilter=None):
         lxml_parser = LxmlParser('xpath', subfilter, 'path')
         lxml_parser.feed(data)
-        return lxml_parser.get_filtered_data()
+        filtered_data = lxml_parser.get_filtered_data()
+        # TODO: move this raise higher in class
+        if not filtered_data.strip():
+            raise ValueError('XPathFilter did not match any markup for job: {}'.format(self.job))
+        return filtered_data
 
 
 class RegexSub(FilterBase):
