@@ -294,27 +294,53 @@ class UrlwatchCommand:
                 # TODO: Actually verify that the login to the server works
 
             sys.exit(0)
-    
-    # for COVID19tracker, produce a sorted report of each entry in the storage database along with its 
-    # last-updated timestamp and push it to a webhook. running_after_jobs is false when invoked with 
-    # --report-timestamps, and true if invoked automatically after regular jobs are run 
+
+    # for COVID19tracker, produce a sorted report of each entry in the storage database along with its
+    # last-updated timestamp and push it to a webhook. running_after_jobs is false when invoked with
+    # --report-timestamps, and true if invoked automatically after regular jobs are run
     def report_timestamps(self, running_after_jobs = False):
         states = {}
         for idx, job in enumerate(self.urlwatcher.jobs):
             pretty_name = job.pretty_name()
             guid = job.get_guid()
-            timestamp = self.urlwatcher.cache_storage.load(None, guid)[1]
-            states[pretty_name] = timestamp
+            job_data = self.urlwatcher.cache_storage.load(None, guid)
+            content = job_data[0]
+            timestamp = job_data[1]
+            states[pretty_name] = {'content': '', 'timestamp': timestamp, 'error': ("error" in content.lower())}
 
-        states = sorted(states.items(), key=lambda x: x[1], reverse=True)
+            # define strings to use to determine error messaging
+            css_xpath_errors = ['cssfilter', 'xpathfilter']
+            loading_errors = ['read timed out', 'connection reset', 'timed out', 'server error', '503', '500', '522', '424', '401', 'timeouterror']
+            not_found_errors = ['not found for url', '404']
+
+            # check to see if an error was picked up
+            if states[pretty_name]['error']:
+                content = 'Unknown error.'
+
+                # check for css_xpath_errors strings
+                if any(substring in content.lower() for substring in css_xpath_errors):
+                    content = 'Current CSS/XPath filter rules are not working.'
+
+                # check for various loading errors
+                if any(substring in content.lower() for substring in loading_errors):
+                    content = 'Error loading URL. May be down.'
+
+                # check for 404 specific
+                if any(substring in content.lower() for substring in not_found_errors):
+                    content = 'URL not found anymore.'
+
+                # update content
+                states[pretty_name].update({'content': content})
+
+        states = sorted(states.items(), key=lambda x: x[1]['timestamp'], reverse=True)
         output = ""
         for state in states:
-            timestamp_formatted = email.utils.formatdate(state[1], localtime=1)
-            output += ("%s|%s\n" % (state[0], state[1]))
+            timestamp_formatted = email.utils.formatdate(state[1]['timestamp'], localtime=1)
+            output += ("%s|%s|%s\n" % (state[0], state[1]['timestamp'], state[1]['content']))
 
         if not running_after_jobs:
             print(output)
-        
+
         config = self.urlwatcher.config_storage.config['report'].get('timestamp_webhook', None)
         if not config:
             print('You need to configure timestamp_webhook in your config first')
@@ -325,7 +351,7 @@ class UrlwatchCommand:
         webhook_url = config.get('webhook_url', None)
         post_data = {'value1': output}
         result = requests.post(webhook_url, json=post_data)
-        
+
         try:
             if result.status_code == requests.codes.ok:
                 logger.info("Webhook response: ok")
@@ -337,7 +363,7 @@ class UrlwatchCommand:
                                                                                              result.content))
         if not running_after_jobs:
             sys.exit(0)
-    
+
     def run(self):
         self.check_edit_config()
         self.check_smtp_login()
@@ -345,10 +371,10 @@ class UrlwatchCommand:
         self.check_test_slack()
         self.handle_actions()
         self.urlwatcher.run_jobs()
-        
-        # if timestamp reporting is enabled, 
+
+        # if timestamp reporting is enabled,
         config = self.urlwatcher.config_storage.config['report'].get('timestamp_webhook', None)
         if config['enabled']:
           self.report_timestamps(running_after_jobs = True);
-        
+
         self.urlwatcher.close()
