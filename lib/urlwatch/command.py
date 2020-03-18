@@ -304,33 +304,37 @@ class UrlwatchCommand:
             pretty_name = job.pretty_name()
             guid = job.get_guid()
             job_data = self.urlwatcher.cache_storage.load(None, guid)
-            content = job_data[0]
+            job_data_content = job_data[0]
             timestamp = job_data[1]
-            states[pretty_name] = {'content': '', 'timestamp': timestamp, 'error': ("error" in content.lower())}
+            states[pretty_name] = {'content': '', 'timestamp': timestamp,
+                                   'error': ("error" in job_data_content.lower())}
 
             # define strings to use to determine error messaging
             css_xpath_errors = ['cssfilter', 'xpathfilter']
             loading_errors = ['read timed out', 'connection reset', 'timed out', 'server error', '503', '500', '522', '424', '401', 'timeouterror']
             not_found_errors = ['not found for url', '404']
 
+            error_content = ''
             # check to see if an error was picked up
             if states[pretty_name]['error']:
-                content = 'Unknown error.'
-
                 # check for css_xpath_errors strings
-                if any(substring in content.lower() for substring in css_xpath_errors):
-                    content = 'Current CSS/XPath filter rules are not working.'
+                if any(substring in job_data_content.lower() for substring in css_xpath_errors):
+                    error_content = 'Current CSS/XPath filter rules are not working.'
 
                 # check for various loading errors
-                if any(substring in content.lower() for substring in loading_errors):
-                    content = 'Error loading URL. May be down.'
+                if any(substring in job_data_content.lower() for substring in loading_errors):
+                    error_content = 'Error loading URL. May be down.'
 
                 # check for 404 specific
-                if any(substring in content.lower() for substring in not_found_errors):
-                    content = 'URL not found anymore.'
+                if any(substring in job_data_content.lower() for substring in not_found_errors):
+                    error_content = 'URL not found anymore.'
+
+                # did not match any checks
+                if not error_content:
+                    error_content = 'Unknown error.'
 
                 # update content
-                states[pretty_name].update({'content': content})
+                states[pretty_name].update({'content': error_content})
 
         states = sorted(states.items(), key=lambda x: x[1]['timestamp'], reverse=True)
         output = ""
