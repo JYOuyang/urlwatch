@@ -315,6 +315,8 @@ class UrlwatchCommand:
 
             # check to see if an error was picked up
             if states[pretty_name]['error']:
+                content = 'Unknown error.'
+
                 # check for css_xpath_errors strings
                 if any(substring in content.lower() for substring in css_xpath_errors):
                     content = 'Current CSS/XPath filter rules are not working.'
