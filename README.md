@@ -35,7 +35,9 @@ urlwatch 2 requires:
 
 The dependencies can be installed with (add `--user` to install to `$HOME`):
 
-`python3 -m pip install pyyaml minidb requests keyring appdirs lxml cssselect`
+`python3 -m venv venv;source venv/bin/activate`
+
+`python3 -m pip install -r requirements-dev.txt`
 
 
 Optional dependencies (install via `python3 -m pip install <packagename>`):
