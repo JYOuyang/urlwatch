@@ -311,7 +311,7 @@ class UrlwatchCommand:
 
             # define strings to use to determine error messaging
             css_xpath_errors = ['cssfilter', 'xpathfilter']
-            loading_errors = ['read timed out', 'connection reset', 'timed out', 'server error', '503', '500', '522', '424', '401', 'timeouterror']
+            loading_errors = ['read timed out', 'connection reset', 'timed out', 'server error', '503', '500', '522', '424', '401', 'timeouterror', 'failed to establish a new connection', 'max retries exceeded']
             not_found_errors = ['not found for url', '404']
 
             error_content = ''
@@ -319,7 +319,7 @@ class UrlwatchCommand:
             if states[pretty_name]['error']:
                 # check for css_xpath_errors strings
                 if any(substring in job_data_content.lower() for substring in css_xpath_errors):
-                    error_content = 'Current CSS/XPath filter rules are not working.'
+                    error_content = 'Current filter rules are not working.'
 
                 # check for various loading errors
                 if any(substring in job_data_content.lower() for substring in loading_errors):
