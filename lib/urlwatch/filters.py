@@ -37,6 +37,11 @@ import html.parser
 import hashlib
 import json
 
+# for OCR
+from PIL import Image
+from io import BytesIO
+import pytesseract
+
 from enum import Enum
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -340,6 +345,15 @@ class GetElementByTag(FilterBase):
         element_by_tag.feed(data)
         return element_by_tag.get_html()
 
+class OCRFilter(FilterBase):
+    """Return pytesseract results"""
+
+    __kind__ = 'ocr'
+
+    def filter(self, data, subfilter=None):
+        self._no_subfilters(subfilter)
+        image_data = Image.open(BytesIO(data))
+        return pytesseract.image_to_string(image_data)
 
 class Sha1Filter(FilterBase):
     """Calculate the SHA-1 checksum of the content"""
