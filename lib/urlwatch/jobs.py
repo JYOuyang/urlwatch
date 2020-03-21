@@ -306,7 +306,7 @@ class UrlJob(Job):
         job_state.etag = response.headers.get('ETag')
 
         # If we're doing OCR, return the request content directly
-        if self.filter.strip() == 'ocr':
+        if 'ocr' in self.filter:
             return response.content
 
         # If we can't find the encoding in the headers, requests gets all
