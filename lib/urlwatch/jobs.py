@@ -305,6 +305,10 @@ class UrlJob(Job):
         # Save ETag from response into job_state, which will be saved in cache
         job_state.etag = response.headers.get('ETag')
 
+        # If we're doing OCR, return the request content directly
+        if 'ocr' in self.filter:
+            return response.content
+
         # If we can't find the encoding in the headers, requests gets all
         # old-RFC-y and assumes ISO-8859-1 instead of UTF-8. Use the old
         # urlwatch behavior and try UTF-8 decoding first.

@@ -37,6 +37,11 @@ import html.parser
 import hashlib
 import json
 
+# for OCR
+from PIL import Image
+from io import BytesIO
+import pytesseract
+
 from enum import Enum
 from lxml import etree
 from lxml.cssselect import CSSSelector
@@ -235,6 +240,22 @@ class StripFilter(FilterBase):
         return data.strip()
 
 
+class CleanNewLinesFilter(FilterBase):
+    """Clean up excessive newlines"""
+
+    __kind__ = 'clean-new-lines'
+
+    def filter(self, data, subfilter=None):
+        self._no_subfilters(subfilter)
+
+        lines = data.split("\n")
+        non_empty_lines = [line for line in lines if line.strip() != ""]
+        string_without_empty_lines = ""
+        for line in non_empty_lines:
+              string_without_empty_lines += line + "\n"
+        return string_without_empty_lines.strip()
+
+
 class FilterBy(Enum):
     ATTRIBUTE = 1
     TAG = 2
@@ -340,6 +361,14 @@ class GetElementByTag(FilterBase):
         element_by_tag.feed(data)
         return element_by_tag.get_html()
 
+class OCRFilter(FilterBase):
+    """Return pytesseract results"""
+
+    __kind__ = 'ocr'
+
+    def filter(self, data, subfilter=None):
+        image_data = Image.open(BytesIO(data))
+        return pytesseract.image_to_string(image_data)
 
 class Sha1Filter(FilterBase):
     """Calculate the SHA-1 checksum of the content"""
