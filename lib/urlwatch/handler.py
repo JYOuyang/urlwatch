@@ -104,7 +104,7 @@ class JobState(object):
                 # job has a chance to format and ignore its error
                 self.exception = e
                 self.traceback = self.job.format_error(e, traceback.format_exc())
-                self.new_data = f"ERROR|{now_epoch}: {e}"
+                self.new_data = "ERROR|%s: %s" % (now_epoch, e)
                 self.error_ignored = self.job.ignore_error(e)
                 if not (self.error_ignored or isinstance(e, NotModifiedError)):
                     self.tries += 1
@@ -113,7 +113,7 @@ class JobState(object):
             # job failed its chance to handle error
             self.exception = e
             self.traceback = traceback.format_exc()
-            self.new_data = f"ERROR|{now_epoch}: {e}"
+            self.new_data = "ERROR|%s: %s" % (now_epoch, e)
             self.error_ignored = False
             if not isinstance(e, NotModifiedError):
                 self.tries += 1
